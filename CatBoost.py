@@ -36,13 +36,18 @@ class CatBoost:
             # Initialize CatBoost model with verbose=0 to reduce output
             catboost = CatBoostClassifier(random_seed=42, verbose=0)
             
-            # Perform randomized search
+            # Perform randomized search with early stopping
             random_search = RandomizedSearchCV(
                 catboost, param_distributions, n_iter=15, cv=5, scoring='accuracy',
                 n_jobs=-1, verbose=1, random_state=42
             )
             print("Training CatBoost model...")
-            random_search.fit(X_train, y_train, verbose=False)
+            random_search.fit(
+                X_train, y_train,
+                eval_set=(X_test, y_test),
+                early_stopping_rounds=50,
+                verbose=True
+            )
             best_catboost = random_search.best_estimator_
             
             # Save the model

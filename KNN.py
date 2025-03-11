@@ -32,13 +32,21 @@ class KNN:
                 best_knn, scaler = best_knn
         else:
             # Define hyperparameter grid
-            param_distributions = {
-                'n_neighbors': list(range(1, 31, 2)),
-                'weights': ['uniform', 'distance'],
-                'metric': ['euclidean', 'manhattan', 'minkowski'],
-                'p': [1, 2, 3],  # Only relevant for minkowski metric
-                'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']
-            }
+            param_distributions = [
+                {
+                    'n_neighbors': list(range(1, 31, 2)),
+                    'weights': ['uniform', 'distance'],
+                    'metric': ['minkowski'],
+                    'p': [1, 2, 3],
+                    'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']
+                },
+                {
+                    'n_neighbors': list(range(1, 31, 2)),
+                    'weights': ['uniform', 'distance'],
+                    'metric': ['euclidean', 'manhattan'],
+                    'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']
+                }
+            ]
             
             # Initialize KNN model
             knn = KNeighborsClassifier()
