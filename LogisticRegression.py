@@ -28,13 +28,34 @@ class LR:
             print("Loading checkpoint LR model...")
             best_lr = joblib.load(checkpoint_path)
         else:
-            # Define hyperparameter grid
-            param_distributions = {
-                'C': [0.001, 0.01, 0.1, 1, 10, 100],
-                'penalty': ['l1', 'l2', 'elasticnet', None],
-                'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
-                'class_weight': ['balanced', None]
-            }
+            # Define hyperparameter grid with valid combinations
+            param_distributions = [
+                {
+                    'penalty': ['l2'],
+                    'solver': ['newton-cg', 'lbfgs', 'sag', 'saga'],
+                    'C': [0.001, 0.01, 0.1, 1, 10, 100],
+                    'class_weight': ['balanced', None]
+                },
+                {
+                    'penalty': ['l1'],
+                    'solver': ['liblinear', 'saga'],
+                    'C': [0.001, 0.01, 0.1, 1, 10, 100],
+                    'class_weight': ['balanced', None]
+                },
+                {
+                    'penalty': ['elasticnet'],
+                    'solver': ['saga'],
+                    'l1_ratio': [0.5],  # you can try other values if desired
+                    'C': [0.001, 0.01, 0.1, 1, 10, 100],
+                    'class_weight': ['balanced', None]
+                },
+                {
+                    'penalty': [None],
+                    'solver': ['newton-cg', 'lbfgs', 'sag', 'saga'],
+                    'C': [0.001, 0.01, 0.1, 1, 10, 100],
+                    'class_weight': ['balanced', None]
+                }
+            ]
             
             # Initialize LR model
             lr = LogisticRegression(random_state=42, max_iter=1000)
