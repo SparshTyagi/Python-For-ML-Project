@@ -54,7 +54,7 @@ class KNN:
             # Perform randomized search
             random_search = RandomizedSearchCV(
                 knn, param_distributions, n_iter=20, cv=5, scoring='accuracy',
-                n_jobs=-1, verbose=1, random_state=42
+                n_jobs=-1, verbose=3, random_state=42
             )
             print("Training KNN model...")
             random_search.fit(X_train_scaled, y_train)
