@@ -371,7 +371,7 @@ class RandomForestModel:
                     xticklabels=['Sober', 'Intoxicated'], yticklabels=['Sober', 'Intoxicated'])
         plt.xlabel("Predicted")
         plt.ylabel("Actual")
-        plt.title(f"Confusion Matrix (Accuracy: {accuracy:.4f})")
+        plt.title(f"RandomForest Confusion Matrix (Accuracy: {accuracy:.4f})")
 
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, bbox_inches="tight")
