@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import joblib
 import numpy as np
 from scipy.stats import skew, kurtosis, entropy
 from scipy.fft import fft
@@ -391,108 +392,6 @@ class RandomForestModel:
         plt.show()
 
 
-class SVM:
-    @staticmethod
-    def train_svm(X, y):
-        """Trains and evaluates an SVM classifier."""
-        # Split data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        # Define hyperparameter grid
-        param_grid = {
-            'C': [0.1, 1, 10],
-            'kernel': ['linear', 'rbf'],
-            'gamma': ['scale', 'auto']
-        }
-
-        # Initialize SVM model
-        svm = SVC()
-
-        # Perform grid search with cross-validation
-        grid_search = GridSearchCV(svm, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
-        grid_search.fit(X_train, y_train)
-
-        # Get the best model
-        best_svm = grid_search.best_estimator_
-
-        # Make predictions
-        y_pred = best_svm.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
-        sober_accuracy = tn / (tn + fp)
-
-        # Print evaluation results
-        print("\nBest SVM Parameters:", grid_search.best_params_)
-        print(f"Accuracy: {accuracy:.4f}")
-        print(f"Precision: {precision:.4f}")
-        print(f"Recall: {recall:.4f}")
-        print(f"F1 Score: {f1:.4f}")
-        print(f"Sober Accuracy: {sober_accuracy:.4f}")
-
-        return best_svm, y_test, y_pred, accuracy, precision, recall, f1
-
-
-class MLP:
-    @staticmethod
-    def train_mlp(X, y):
-        """
-        Trains and evaluates an MLP classifier.
-
-        Parameters:
-        - X (pd.DataFrame): Feature matrix.
-        - y (pd.Series): Target labels.
-
-        Returns:
-        - best_mlp (MLPClassifier): Best trained MLP model.
-        - y_test (pd.Series): Actual test labels.
-        - y_pred (pd.Series): Predicted labels.
-        - accuracy (float): Model accuracy.
-        - precision (float): Precision score.
-        - recall (float): Recall score.
-        - f1 (float): F1 score.
-        """
-        # Split data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        # Define hyperparameter grid
-        param_grid = {
-            'hidden_layer_sizes': [(50,), (100,), (50, 50)],
-            'activation': ['relu', 'tanh'],
-            'solver': ['adam'],
-            'alpha': [0.0001, 0.001],
-            'learning_rate': ['constant', 'adaptive']
-        }
-
-        # Initialize MLP Classifier
-        mlp = MLPClassifier(max_iter=500, random_state=42)
-
-        # Perform grid search with cross-validation
-        grid_search = GridSearchCV(mlp, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
-        grid_search.fit(X_train, y_train)
-
-        # Get the best model
-        best_mlp = grid_search.best_estimator_
-
-        # Make predictions
-        y_pred = best_mlp.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-
-        # Print evaluation results
-        print("\nBest MLP Parameters:", grid_search.best_params_)
-        print(f"Accuracy: {accuracy:.4f}")
-        print(f"Precision: {precision:.4f}")
-        print(f"Recall: {recall:.4f}")
-        print(f"F1 Score: {f1:.4f}")
-
-        return best_mlp, y_test, y_pred, accuracy, precision, recall, f1
-
-
 if __name__ == "__main__":
     # Uncomment the following steps as needed.
 
@@ -519,6 +418,24 @@ if __name__ == "__main__":
 
     # Train Random Forest Model (with GridSearchCV progress shown)
     best_rf, y_test, y_pred, feature_importance, accuracy = RandomForestModel.train_random_forest(X, y)
+    
+    # Save the trained Random Forest model into a folder (e.g., Best_Models)
+    model_save_dir = "Best_Models"
+    os.makedirs(model_save_dir, exist_ok=True)
+    rf_model_path = os.path.join(model_save_dir, "best_rf_model.pkl")
+    joblib.dump(best_rf, rf_model_path)
+    print(f"Best RF model saved to {rf_model_path}")
+    
+    # Save the confusion matrix image
+    confusion_matrix_save_path = "results/rf_confusion_matrix.png"
+    RandomForestModel.plot_confusion_matrix(y_test, y_pred, accuracy, save_path=confusion_matrix_save_path)
+    print(f"Confusion matrix saved to {confusion_matrix_save_path}")
+    
+    # Save the feature importance plot
+    feature_importance_save_path = "results/rf_feature_importance.png"
+    RandomForestModel.plot_feature_importance(feature_importance, save_path=feature_importance_save_path)
+    print(f"Feature importance plot saved to {feature_importance_save_path}")    
+
     # You can also train SVM and MLP as needed:
     # SVM.train_svm(X, y)
     # MLP.train_mlp(X, y)
