@@ -134,10 +134,10 @@ class SVM:
         feature_importance = pd.DataFrame({'Feature': features, 'Importance': importance})
         feature_importance = feature_importance.sort_values('Importance', ascending=False)
         
-        # Plot top 15 features
+        # Plot top 10 features
         plt.figure(figsize=(10, 6))
-        sns.barplot(x='Importance', y='Feature', data=feature_importance.head(15))
-        plt.title('Top 15 Features (SVM)')
+        sns.barplot(x='Importance', y='Feature', data=feature_importance.head(10))
+        plt.title('Top 10 Features (SVM)')
         plt.xlabel('Coefficient Magnitude')
         plt.tight_layout()
         
@@ -229,10 +229,10 @@ class MLP:
         })
         feature_importance = feature_importance.sort_values('Importance', ascending=False)
         
-        # Plot top 15 features
+        # Plot top 10 features
         plt.figure(figsize=(10, 6))
-        sns.barplot(x='Importance', y='Feature', data=feature_importance.head(15))
-        plt.title('Top 15 Features (MLP)')
+        sns.barplot(x='Importance', y='Feature', data=feature_importance.head(10))
+        plt.title('Top 10 Features (MLP)')
         plt.xlabel('Permutation Importance')
         plt.tight_layout()
         
@@ -304,14 +304,7 @@ if __name__ == "__main__":
     X = df.drop(columns=['pid', 'time', 'label'], errors='ignore')
     y = df['label']
 
-    print("\n===== MLP Model Training =====")
-    best_mlp, mlp_y_test, mlp_y_pred, mlp_accuracy, mlp_precision, mlp_recall, mlp_f1 = MLP.train_mlp(X, y)
-    mlp_cm = confusion_matrix(mlp_y_test, mlp_y_pred)
-    MLP.plot_confusion_matrix(mlp_y_test, mlp_y_pred, mlp_accuracy)
-    
-    # Plot MLP feature importance
-    print("\nCalculating MLP feature importance...")
-    MLP.plot_feature_importance(best_mlp, X, y)
+
 
     print("\n===== SVM Model Training =====")
     best_svm, svm_y_test, svm_y_pred, svm_accuracy, svm_precision, svm_recall, svm_f1 = SVM.train_svm(X, y)
@@ -322,7 +315,14 @@ if __name__ == "__main__":
     if best_svm.kernel == 'linear':
         SVM.plot_feature_importance(best_svm, X)
     
-
+    print("\n===== MLP Model Training =====")
+    best_mlp, mlp_y_test, mlp_y_pred, mlp_accuracy, mlp_precision, mlp_recall, mlp_f1 = MLP.train_mlp(X, y)
+    mlp_cm = confusion_matrix(mlp_y_test, mlp_y_pred)
+    MLP.plot_confusion_matrix(mlp_y_test, mlp_y_pred, mlp_accuracy)
+    
+    # Plot MLP feature importance
+    print("\nCalculating MLP feature importance...")
+    MLP.plot_feature_importance(best_mlp, X, y)
     
     
     # Get RandomForest results - assuming this has been run separately
@@ -350,3 +350,36 @@ if __name__ == "__main__":
     plot_combined_confusion_matrices(svm_cm, mlp_cm, rf_cm)
     
     print("\nModel training, evaluation, and visualization complete!")
+    
+    
+# MLP Results:
+
+# [0.72630265 0.75650552 0.72630265 0.75650552 0.70018398 0.75663423
+#  0.70018398 0.75653773 0.75451143        nan 0.75451143        nan
+#  0.75438252        nan 0.75438252        nan 0.76226314        nan
+#  0.76226314        nan 0.74042292 0.75650552 0.74042292 0.75650552
+#  0.74849619 0.75676288 0.74849619 0.75673074 0.75486527        nan
+#  0.75486527        nan 0.72032018        nan 0.72032018        nan
+#  0.7542219         nan 0.7542219         nan 0.74305903 0.75628033
+#  0.74305903 0.7563125  0.73855589 0.75702021 0.73855589 0.75663424
+#  0.75386828        nan 0.75386828        nan 0.75097228        nan
+#  0.75097228        nan 0.74801371        nan 0.74801371        nan
+#  0.76110516 0.7503943  0.76110516 0.75775998 0.76351742 0.75936802
+#  0.76351742 0.7578885  0.76184508 0.7566984  0.76184508 0.75605511
+#  0.76042988 0.75798506 0.76042988 0.75566913 0.76760267 0.7590788
+#  0.76760267 0.75991509 0.75965776 0.75792077 0.75965776 0.75711671
+#  0.76287412 0.75930391 0.76287412 0.75933603 0.75824254 0.75705228
+#  0.75824254 0.75618386 0.76062241 0.75740616 0.76062241 0.75856389
+#  0.76245615 0.75936823 0.76245615 0.75766365 0.75785651 0.75608752
+#  0.75785651 0.74968566 0.76075134 0.75869265 0.76075134 0.75882143
+#  0.75566938 0.75583005 0.75566938 0.7549939  0.7588211  0.75862843
+#  0.7588211  0.75628041 0.76133026 0.7607191  0.76133026 0.75962547]
+    
+#    Accuracy: 0.7710
+#Precision: 0.5265
+#Recall: 0.5932
+#F1 Score: 0.5579
+#Sober Accuracy: 0.8282
+
+
+#Best MLP Parameters: {'activation': 'tanh', 'alpha': 0.0001, 'hidden_layer_sizes': (100, 100), 'learning_rate': 'constant', 'solver': 'adam'}
