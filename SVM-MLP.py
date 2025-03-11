@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
+import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -10,35 +11,49 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import ParameterGrid, KFold, cross_val_score
+
 
 class SVM:
     @staticmethod
     def train_svm(X, y):
-        """Trains and evaluates an SVM classifier with progress tracking."""
-        # Split data into training and testing sets
+        """Trains an SVM classifier with iterative checkpointing during hyperparameter search."""
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        # Define hyperparameter grid
-        param_distributions = {
-            'C': [0.1, 1, 10, 100],
-            'kernel': ['linear', 'rbf', 'poly'],
-            'gamma': ['scale', 'auto', 0.1, 0.01]
-        }
-
-        # Initialize SVM model
-        svm = SVC(random_state=42)
-
-        # Perform randomized search with cross-validation and progress tracking
-        random_search = RandomizedSearchCV(svm, param_distributions, n_iter=20, cv=5, scoring='accuracy', n_jobs=-1, verbose=0, random_state=42)
         
-        # Wrap random_search.fit call with tqdm_joblib to track progress
-        with tqdm_joblib(tqdm(total=20, desc="SVM RandomizedSearchCV iterations")):
-            random_search.fit(X_train, y_train)
-
-        # Get the best model
-        best_svm = random_search.best_estimator_
-
-        # Make predictions
+        checkpoint_path = "best_svm_model.pkl"
+        if os.path.exists(checkpoint_path):
+            print("Loading checkpoint SVM model...")
+            best_svm = joblib.load(checkpoint_path)
+        else:
+        # if True:
+            param_distributions = {
+                'C': [0.1, 1, 10, 100],
+                'kernel': ['linear', 'rbf', 'poly'],
+                'gamma': ['scale', 'auto', 0.1, 0.01]
+            }
+            grid = list(ParameterGrid(param_distributions))
+            cv = KFold(n_splits=5, shuffle=True, random_state=42)
+            best_score = -np.inf
+            best_svm = None
+            
+            for i, params in enumerate(tqdm(grid, desc="SVM Hyperparameter Search", ncols=80), 1):
+                candidate = SVC(random_state=42, **params)
+                score = np.mean(cross_val_score(candidate, X_train, y_train,
+                                                  cv=cv, scoring='accuracy', n_jobs=-1))
+                if score > best_score:
+                    best_score = score
+                    total_iter = len(param_distributions['C']) * len(param_distributions['kernel']) * len(param_distributions['gamma']) * 5
+                    with tqdm_joblib(tqdm(total=total_iter, desc="SVM GridSearchCV iterations")):
+                        best_svm = candidate.fit(X_train, y_train)
+                    joblib.dump(best_svm, checkpoint_path)
+                    print(f"SVM checkpoint: iteration {i} / {len(grid)}, best score: {best_score:.4f}")
+                    
+                if i % 10 == 0 :
+                    joblib.dump(best_svm, checkpoint_path)
+                    print(f"SVM checkpoint: iteration {i} / {len(grid)}, best score: {best_score:.4f}")
+            joblib.dump(best_svm, checkpoint_path)
+            print(f"Best SVM model saved to {checkpoint_path}")
+        
         y_pred = best_svm.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         precision = precision_score(y_test, y_pred)
@@ -46,15 +61,14 @@ class SVM:
         f1 = f1_score(y_test, y_pred)
         tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
         sober_accuracy = tn / (tn + fp)
-
-        # Print evaluation results
-        print("\nBest SVM Parameters:", random_search.best_params_)
+        
+        print("\nBest SVM Parameters:", best_svm)
         print(f"Accuracy: {accuracy:.4f}")
         print(f"Precision: {precision:.4f}")
         print(f"Recall: {recall:.4f}")
         print(f"F1 Score: {f1:.4f}")
         print(f"Sober Accuracy: {sober_accuracy:.4f}")
-
+        
         return best_svm, y_test, y_pred, accuracy, precision, recall, f1
     # @staticmethod
     # def train_svm(X, y):
@@ -147,41 +161,49 @@ class SVM:
         plt.show()
 
 
+
 class MLP:
     @staticmethod
     def train_mlp(X, y):
-        """Trains and evaluates an MLP classifier with progress tracking."""
-        # Split data into training and testing sets
+        """Trains an MLP classifier with iterative checkpointing during hyperparameter search."""
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        # Define hyperparameter grid
-        param_grid = {
-            'hidden_layer_sizes': [(50,), (100,), (50, 50), (100, 50), (100, 100)],
-            'activation': ['relu', 'tanh'],
-            'solver': ['adam', 'sgd'],
-            'alpha': [0.0001, 0.001, 0.01],
-            'learning_rate': ['constant', 'adaptive']
-        }
-
-        # Calculate total iterations for progress tracking
-        total_iter = (len(param_grid['hidden_layer_sizes']) * len(param_grid['activation']) * 
-                      len(param_grid['solver']) * len(param_grid['alpha']) * 
-                      len(param_grid['learning_rate']) * 5)
-
-        # Initialize MLP Classifier
-        mlp = MLPClassifier(max_iter=500, random_state=42)
-
-        # Perform grid search with cross-validation and progress tracking
-        grid_search = GridSearchCV(mlp, param_grid, cv=5, scoring='accuracy', n_jobs=-1, verbose=0)
         
-        # Wrap grid_search.fit call with tqdm_joblib to track progress
-        with tqdm_joblib(tqdm(total=total_iter, desc="MLP GridSearchCV iterations")):
-            grid_search.fit(X_train, y_train)
-
-        # Get the best model
-        best_mlp = grid_search.best_estimator_
-
-        # Make predictions
+        checkpoint_path = "best_mlp_model.pkl"
+        # if os.path.exists(checkpoint_path):
+        #     print("Loading checkpoint MLP model...")
+        #     best_mlp = joblib.load(checkpoint_path)
+        # else:
+        if True:
+            param_grid = {
+                'hidden_layer_sizes': [(50,), (100,), (50, 50), (100, 50), (100, 100)],
+                'activation': ['relu', 'tanh'],
+                'solver': ['adam', 'sgd'],
+                'alpha': [0.0001, 0.001, 0.01],
+                'learning_rate': ['constant', 'adaptive']
+            }
+            grid = list(ParameterGrid(param_grid))
+            cv = KFold(n_splits=5, shuffle=True, random_state=42)
+            best_score = -np.inf
+            best_mlp = None
+            
+            for i, params in enumerate(tqdm(grid, desc="MLP Hyperparameter Search", ncols=80), 1):
+                candidate = MLPClassifier(max_iter=500, random_state=42, **params)
+                score = np.mean(cross_val_score(candidate, X_train, y_train,
+                                                    cv=cv, scoring='accuracy', n_jobs=-1))
+                if score > best_score:
+                    best_score = score
+                    total_iter = len(param_grid['hidden_layer_sizes']) * len(param_grid['activation']) * len(param_grid['solver']) * len(param_grid['alpha']) * len(param_grid['learning_rate']) * 5
+                    with tqdm_joblib(tqdm(total=total_iter, desc="MLP GridSearchCV iterations")):
+                        best_mlp = candidate.fit(X_train, y_train)
+                    joblib.dump(best_mlp, checkpoint_path)
+                    print(f"MLP checkpoint: iteration {i} / {len(grid)}, best score: {best_score:.4f}")
+                    
+                if i % 10 == 0:
+                    joblib.dump(best_mlp, checkpoint_path)
+                    print(f"MLP checkpoint: iteration {i} / {len(grid)}, best score: {best_score:.4f}")
+            joblib.dump(best_mlp, checkpoint_path)
+            print(f"Best MLP model saved to {checkpoint_path}")
+        
         y_pred = best_mlp.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         precision = precision_score(y_test, y_pred)
@@ -189,15 +211,14 @@ class MLP:
         f1 = f1_score(y_test, y_pred)
         tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
         sober_accuracy = tn / (tn + fp)
-
-        # Print evaluation results
-        print("\nBest MLP Parameters:", grid_search.best_params_)
+        
+        print("\nBest MLP Parameters:", best_mlp)
         print(f"Accuracy: {accuracy:.4f}")
         print(f"Precision: {precision:.4f}")
         print(f"Recall: {recall:.4f}")
         print(f"F1 Score: {f1:.4f}")
         print(f"Sober Accuracy: {sober_accuracy:.4f}")
-
+        
         return best_mlp, y_test, y_pred, accuracy, precision, recall, f1
 
     @staticmethod
@@ -315,6 +336,11 @@ if __name__ == "__main__":
     if best_svm.kernel == 'linear':
         SVM.plot_feature_importance(best_svm, X)
     
+    # Save the best SVM model
+    svm_model_path = "best_svm_model.pkl"
+    joblib.dump(best_svm, svm_model_path)
+    print(f"Best SVM model saved to {svm_model_path}")
+    
     print("\n===== MLP Model Training =====")
     best_mlp, mlp_y_test, mlp_y_pred, mlp_accuracy, mlp_precision, mlp_recall, mlp_f1 = MLP.train_mlp(X, y)
     mlp_cm = confusion_matrix(mlp_y_test, mlp_y_pred)
@@ -323,6 +349,11 @@ if __name__ == "__main__":
     # Plot MLP feature importance
     print("\nCalculating MLP feature importance...")
     MLP.plot_feature_importance(best_mlp, X, y)
+
+    # Save the best MLP model
+    mlp_model_path = "best_mlp_model.pkl"
+    joblib.dump(best_mlp, mlp_model_path)
+    print(f"Best MLP model saved to {mlp_model_path}")
     
     
     # Get RandomForest results - assuming this has been run separately
